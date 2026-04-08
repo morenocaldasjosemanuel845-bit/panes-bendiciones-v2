@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panes Artesanales Las 3 Bendiciones</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="contenedor">
+        <h1>Panes Artesanales Las 3 Bendiciones</h1>
+        <p class="subtitulo">Azuvalentina y Kiory</p>
+
+        <div class="productos">
+            {% for producto in productos %}
+                <div class="producto">
+                    <h2>{{ producto.nombre }}</h2>
+                    <p>S/ {{ "%.2f"|format(producto.precio) }}</p>
+                    <button>Comprar</button>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+</body>
+</html>
