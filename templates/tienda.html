@@ -3,39 +3,75 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tienda virtual - Panes Artesanales Las 3 Bendiciones</title>
+    <title>Mi tienda - Panes Artesanales Las 3 Bendiciones</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
-<body>
-    <div class="contenedor">
-        <img src="{{ url_for('static', filename='logopan.png') }}" alt="Panes Artesanales Las 3 Bendiciones" class="logo-principal">
-
-        <h1>Tienda virtual</h1>
-        <h2>Azuvalentina y Kiory</h2>
-
-        <div class="acciones-superiores">
-            <a href="{{ url_for('login_admin') }}">Ingreso del administrador</a>
+<body class="pagina-tienda">
+    <header class="cabecera-tienda">
+        <div class="contenedor-tienda-banner">
+            <img src="{{ url_for('static', filename='logopan.png') }}" alt="Panes Artesanales Las 3 Bendiciones" class="banner-tienda">
         </div>
+    </header>
 
-        <div class="productos">
+    <main class="contenedor-tienda-publica">
+        <aside class="sidebar-tienda">
+            <div class="card-sidebar">
+                <form method="GET" action="{{ url_for('tienda') }}" class="form-busqueda">
+                    <input
+                        type="text"
+                        name="q"
+                        placeholder="Buscar producto..."
+                        value="{{ busqueda or '' }}"
+                    >
+                    <button type="submit">Buscar</button>
+                </form>
+
+                <div class="bloque-info-tienda">
+                    <h3>Mi tienda</h3>
+                    <p>Explora nuestros panes artesanales y productos disponibles.</p>
+                </div>
+
+                <div class="bloque-info-tienda">
+                    <h3>Acceso</h3>
+                    <a href="{{ url_for('login_admin') }}" class="btn-secundario-tienda">Login administrador</a>
+                </div>
+            </div>
+        </aside>
+
+        <section class="seccion-productos-publicos">
             {% if productos %}
-                {% for producto in productos %}
-                    <div class="producto">
-                        {% if producto.imagen %}
-                            <img src="{{ url_for('static', filename='uploads/' + producto.imagen) }}" alt="{{ producto.nombre }}">
-                        {% else %}
-                            <div class="sin-imagen">Sin imagen</div>
-                        {% endif %}
+                <div class="grid-tienda-moderna">
+                    {% for producto in productos %}
+                        <article class="card-producto-moderno">
+                            <div class="imagen-card-moderna">
+                                {% if producto.imagen %}
+                                    <img src="{{ url_for('static', filename='uploads/' + producto.imagen) }}" alt="{{ producto.nombre }}">
+                                {% else %}
+                                    <div class="sin-imagen-moderna">Sin imagen</div>
+                                {% endif %}
+                            </div>
 
-                        <h3>{{ producto.nombre }}</h3>
-                        <p>{{ producto.descripcion }}</p>
-                        <p><strong>S/ {{ "%.2f"|format(producto.precio) }}</strong></p>
-                    </div>
-                {% endfor %}
+                            <div class="contenido-card-moderna">
+                                <h2>{{ producto.nombre }}</h2>
+
+                                {% if producto.descripcion %}
+                                    <p class="descripcion-card-moderna">{{ producto.descripcion }}</p>
+                                {% else %}
+                                    <p class="descripcion-card-moderna">Producto artesanal disponible en tienda.</p>
+                                {% endif %}
+
+                                <p class="precio-card-moderna">S/ {{ "%.2f"|format(producto.precio) }}</p>
+                            </div>
+                        </article>
+                    {% endfor %}
+                </div>
             {% else %}
-                <p class="mensaje-vacio">No hay productos disponibles todavía.</p>
+                <div class="sin-resultados-box">
+                    <h2>No se encontraron productos</h2>
+                    <p>Prueba con otra búsqueda o agrega productos desde el panel del administrador.</p>
+                </div>
             {% endif %}
-        </div>
-    </div>
+        </section>
+    </main>
 </body>
 </html>

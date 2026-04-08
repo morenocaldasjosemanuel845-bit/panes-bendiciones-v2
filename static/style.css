@@ -9,7 +9,9 @@ body {
     color: #333;
 }
 
-/* LOGIN ADMIN */
+/* =========================
+   LOGIN ADMIN
+========================= */
 .contenedor-login-admin {
     width: 100%;
     min-height: 100vh;
@@ -42,28 +44,28 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
     flex-wrap: wrap;
     margin-bottom: 20px;
 }
 
 .form-login-admin input {
-    width: 240px;
+    width: 280px;
     max-width: 100%;
-    padding: 12px 14px;
+    padding: 14px;
     font-size: 18px;
     border: 1px solid #999;
-    border-radius: 4px;
+    border-radius: 6px;
     background: #eef1f9;
 }
 
 .form-login-admin button {
-    padding: 12px 22px;
+    padding: 14px 24px;
     font-size: 18px;
     background: #d4a017;
     color: white;
     border: none;
-    border-radius: 12px;
+    border-radius: 14px;
     cursor: pointer;
     transition: 0.3s;
 }
@@ -72,19 +74,20 @@ body {
     background: #b8860b;
 }
 
-.link-tienda-admin {
+.btn-mi-tienda {
     display: inline-block;
     margin-top: 8px;
-    font-size: 20px;
-    color: #7a2ea8;
-    text-decoration: underline;
-    background: transparent;
-    padding: 0;
+    padding: 12px 24px;
+    background: #7a2ea8;
+    color: white;
+    text-decoration: none;
+    border-radius: 14px;
+    font-size: 19px;
+    transition: 0.3s;
 }
 
-.link-tienda-admin:hover {
-    color: #5f1f85;
-    background: transparent;
+.btn-mi-tienda:hover {
+    background: #5f1f85;
 }
 
 .mensaje-login-admin {
@@ -97,7 +100,9 @@ body {
     font-weight: bold;
 }
 
-/* GENERAL */
+/* =========================
+   GENERAL
+========================= */
 .contenedor {
     width: 92%;
     max-width: 1200px;
@@ -121,21 +126,19 @@ h1 {
 }
 
 h2 {
-    color: #c96f00;
-    font-size: 28px;
-    font-style: italic;
-    margin-top: 0;
-    margin-bottom: 25px;
-}
-
-h3 {
     color: #2d2d2d;
     font-size: 30px;
     margin-bottom: 12px;
 }
 
+h3 {
+    color: #2d2d2d;
+    font-size: 24px;
+    margin-bottom: 10px;
+}
+
 p {
-    font-size: 20px;
+    font-size: 18px;
     line-height: 1.5;
 }
 
@@ -271,21 +274,220 @@ button:hover {
     font-size: 20px;
 }
 
+/* =========================
+   TIENDA PUBLICA NUEVA
+========================= */
+.pagina-tienda {
+    background: #f7f7f7;
+}
+
+.cabecera-tienda {
+    width: 100%;
+    background: #f7f7f7;
+    padding: 18px 0 10px 0;
+}
+
+.contenedor-tienda-banner {
+    width: 96%;
+    max-width: 1600px;
+    margin: 0 auto;
+}
+
+.banner-tienda {
+    width: 100%;
+    display: block;
+    border-radius: 16px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.10);
+}
+
+.contenedor-tienda-publica {
+    width: 96%;
+    max-width: 1600px;
+    margin: 24px auto 50px auto;
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: 28px;
+    align-items: start;
+}
+
+.sidebar-tienda {
+    position: sticky;
+    top: 20px;
+}
+
+.card-sidebar {
+    background: white;
+    border-radius: 24px;
+    padding: 24px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+}
+
+.form-busqueda {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.form-busqueda input {
+    width: 100%;
+    padding: 14px 16px;
+    border: 1px solid #ddd;
+    border-radius: 999px;
+    font-size: 16px;
+    outline: none;
+}
+
+.form-busqueda button {
+    width: 100%;
+    border-radius: 999px;
+    padding: 14px 16px;
+    font-size: 17px;
+    font-weight: bold;
+}
+
+.bloque-info-tienda {
+    margin-top: 18px;
+    text-align: left;
+}
+
+.bloque-info-tienda h3 {
+    font-size: 20px;
+    margin-bottom: 8px;
+}
+
+.bloque-info-tienda p {
+    font-size: 16px;
+    color: #666;
+}
+
+.btn-secundario-tienda {
+    display: inline-block;
+    margin-top: 8px;
+    padding: 12px 18px;
+    background: #7a2ea8;
+    color: white;
+    text-decoration: none;
+    border-radius: 999px;
+    transition: 0.3s;
+}
+
+.btn-secundario-tienda:hover {
+    background: #5f1f85;
+}
+
+.seccion-productos-publicos {
+    width: 100%;
+}
+
+.grid-tienda-moderna {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 26px;
+}
+
+.card-producto-moderno {
+    background: white;
+    border-radius: 32px;
+    overflow: hidden;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.08);
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.card-producto-moderno:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 18px 34px rgba(0, 0, 0, 0.12);
+}
+
+.imagen-card-moderna {
+    width: 100%;
+    height: 260px;
+    background: #faf6ee;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.imagen-card-moderna img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.sin-imagen-moderna {
+    width: 100%;
+    height: 100%;
+    background: #f3ead9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #8a6a3d;
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.contenido-card-moderna {
+    padding: 22px 20px 26px 20px;
+    text-align: center;
+}
+
+.contenido-card-moderna h2 {
+    font-size: 22px;
+    margin: 0 0 12px 0;
+    color: #2c2c2c;
+    min-height: 52px;
+}
+
+.descripcion-card-moderna {
+    font-size: 16px;
+    color: #666;
+    min-height: 48px;
+    margin-bottom: 16px;
+}
+
+.precio-card-moderna {
+    font-size: 24px;
+    font-weight: bold;
+    color: #1f1f1f;
+    margin: 0;
+}
+
+.sin-resultados-box {
+    background: white;
+    padding: 40px 24px;
+    border-radius: 24px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+    text-align: center;
+}
+
+/* =========================
+   RESPONSIVE
+========================= */
+@media (max-width: 992px) {
+    .contenedor-tienda-publica {
+        grid-template-columns: 1fr;
+    }
+
+    .sidebar-tienda {
+        position: static;
+    }
+}
+
 @media (max-width: 768px) {
     h1 {
         font-size: 32px;
     }
 
     h2 {
-        font-size: 22px;
-    }
-
-    h3 {
         font-size: 24px;
     }
 
+    h3 {
+        font-size: 22px;
+    }
+
     p {
-        font-size: 18px;
+        font-size: 17px;
     }
 
     .caja-login-admin h1 {
@@ -297,13 +499,17 @@ button:hover {
     }
 
     .form-login-admin input,
-    .form-login-admin button {
+    .form-login-admin button,
+    .btn-mi-tienda {
         width: 100%;
-        max-width: 320px;
+        max-width: 340px;
     }
 
-    .producto img,
-    .sin-imagen {
-        height: 220px;
+    .grid-tienda-moderna {
+        grid-template-columns: 1fr;
+    }
+
+    .imagen-card-moderna {
+        height: 230px;
     }
 }

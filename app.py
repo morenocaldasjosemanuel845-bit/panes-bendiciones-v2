@@ -61,10 +61,23 @@ def admin_required(f):
 @app.route("/")
 @app.route("/tienda")
 def tienda():
+    busqueda = request.args.get("q", "").strip()
+
     conn = get_db()
-    productos = conn.execute("SELECT * FROM productos ORDER BY id DESC").fetchall()
+    if busqueda:
+        productos = conn.execute(
+            """
+            SELECT * FROM productos
+            WHERE nombre LIKE ? OR descripcion LIKE ?
+            ORDER BY id DESC
+            """,
+            (f"%{busqueda}%", f"%{busqueda}%")
+        ).fetchall()
+    else:
+        productos = conn.execute("SELECT * FROM productos ORDER BY id DESC").fetchall()
+
     conn.close()
-    return render_template("tienda.html", productos=productos)
+    return render_template("tienda.html", productos=productos, busqueda=busqueda)
 
 
 @app.route("/admin/login", methods=["GET", "POST"])
