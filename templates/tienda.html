@@ -2,28 +2,40 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Tienda virtual</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tienda virtual - Panes Artesanales Las 3 Bendiciones</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-<div class="contenedor">
-    <h1>Tienda virtual</h1>
-    <div class="acciones-superiores">
-        <a href="{{ url_for('login_admin') }}">Ingreso del dueño</a>
-    </div>
+    <div class="contenedor">
+        <img src="{{ url_for('static', filename='logopan.png') }}" alt="Panes Artesanales Las 3 Bendiciones" class="logo-principal">
 
-    <div class="productos">
-        {% for producto in productos %}
-        <div class="producto">
-            {% if producto.imagen %}
-                <img src="{{ url_for('static', filename='uploads/' + producto.imagen) }}" alt="{{ producto.nombre }}">
-            {% endif %}
-            <h2>{{ producto.nombre }}</h2>
-            <p>{{ producto.descripcion }}</p>
-            <p>S/ {{ "%.2f"|format(producto.precio) }}</p>
+        <h1>Tienda virtual</h1>
+        <h2>Azuvalentina y Kiory</h2>
+
+        <div class="acciones-superiores">
+            <a href="{{ url_for('login_admin') }}">Ingreso del administrador</a>
         </div>
-        {% endfor %}
+
+        <div class="productos">
+            {% if productos %}
+                {% for producto in productos %}
+                    <div class="producto">
+                        {% if producto.imagen %}
+                            <img src="{{ url_for('static', filename='uploads/' + producto.imagen) }}" alt="{{ producto.nombre }}">
+                        {% else %}
+                            <div class="sin-imagen">Sin imagen</div>
+                        {% endif %}
+
+                        <h3>{{ producto.nombre }}</h3>
+                        <p>{{ producto.descripcion }}</p>
+                        <p><strong>S/ {{ "%.2f"|format(producto.precio) }}</strong></p>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <p class="mensaje-vacio">No hay productos disponibles todavía.</p>
+            {% endif %}
+        </div>
     </div>
-</div>
 </body>
 </html>

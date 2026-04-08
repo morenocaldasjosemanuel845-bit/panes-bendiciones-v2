@@ -2,28 +2,33 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login administrador</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-<div class="contenedor">
-    <h1>Login administrador</h1>
+    <div class="contenedor-login-admin">
+        <img src="{{ url_for('static', filename='logopan.png') }}" alt="Panes Artesanales Las 3 Bendiciones" class="banner-login-admin">
 
-    {% with messages = get_flashed_messages() %}
-      {% if messages %}
-        {% for message in messages %}
-          <p>{{ message }}</p>
-        {% endfor %}
-      {% endif %}
-    {% endwith %}
+        <div class="caja-login-admin">
+            <h1>Login administrador</h1>
 
-    <form method="POST" class="form-admin">
-        <input type="text" name="usuario" placeholder="Usuario" required>
-        <input type="password" name="clave" placeholder="Contraseña" required>
-        <button type="submit">Ingresar</button>
-    </form>
+            {% with messages = get_flashed_messages() %}
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="mensaje-login-admin">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
 
-    <p><a href="{{ url_for('tienda') }}">Ir a la tienda</a></p>
-</div>
+            <form method="POST" class="form-login-admin">
+                <input type="text" name="usuario" placeholder="Usuario" required>
+                <input type="password" name="clave" placeholder="Contraseña" required>
+                <button type="submit">Ingresar</button>
+            </form>
+
+            <a href="{{ url_for('tienda') }}" class="link-tienda-admin">Ir a la tienda</a>
+        </div>
+    </div>
 </body>
 </html>

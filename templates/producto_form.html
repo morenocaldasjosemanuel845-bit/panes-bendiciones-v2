@@ -2,28 +2,56 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>{% if producto %}Editar{% else %}Nuevo{% endif %} producto</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% if producto %}Editar producto{% else %}Nuevo producto{% endif %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-<div class="contenedor">
-    <h1>{% if producto %}Editar{% else %}Nuevo{% endif %} producto</h1>
+    <div class="contenedor">
+        <img src="{{ url_for('static', filename='logopan.png') }}" alt="Panes Artesanales Las 3 Bendiciones" class="logo-principal">
 
-    <form method="POST" enctype="multipart/form-data" class="form-admin">
-        <input type="text" name="nombre" placeholder="Nombre"
-               value="{{ producto.nombre if producto else '' }}" required>
+        <h1>{% if producto %}Editar producto{% else %}Agregar producto{% endif %}</h1>
 
-        <textarea name="descripcion" placeholder="Descripción" rows="5">{{ producto.descripcion if producto else '' }}</textarea>
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="mensaje-login-admin">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
 
-        <input type="number" step="0.01" name="precio" placeholder="Precio"
-               value="{{ producto.precio if producto else '' }}" required>
+        <form method="POST" enctype="multipart/form-data" class="form-admin card-form">
+            <input
+                type="text"
+                name="nombre"
+                placeholder="Nombre del producto"
+                value="{{ producto.nombre if producto else '' }}"
+                required
+            >
 
-        <input type="file" name="imagen" accept="image/*">
+            <textarea
+                name="descripcion"
+                rows="5"
+                placeholder="Descripción del producto"
+            >{{ producto.descripcion if producto else '' }}</textarea>
 
-        <button type="submit">Guardar</button>
-    </form>
+            <input
+                type="number"
+                step="0.01"
+                name="precio"
+                placeholder="Precio"
+                value="{{ producto.precio if producto else '' }}"
+                required
+            >
 
-    <p><a href="{{ url_for('panel_admin') }}">Volver al panel</a></p>
-</div>
+            <input type="file" name="imagen" accept=".png,.jpg,.jpeg,.webp,image/*">
+
+            <button type="submit">Guardar producto</button>
+        </form>
+
+        <p>
+            <a href="{{ url_for('panel_admin') }}" class="link-simple">Volver al panel</a>
+        </p>
+    </div>
 </body>
 </html>

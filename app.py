@@ -2,11 +2,12 @@ import os
 import sqlite3
 from functools import wraps
 from uuid import uuid4
-from werkzeug.utils import secure_filename
+
 from flask import Flask, render_template, request, redirect, url_for, flash, session
+from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
-app.secret_key = os.environ.get("SECRET_KEY", "cambia-esto")
+app.secret_key = os.environ.get("SECRET_KEY", "cambia-esto-en-produccion")
 
 ADMIN_USER = os.environ.get("ADMIN_USER", "admin")
 ADMIN_PASS = os.environ.get("ADMIN_PASS", "123456")
@@ -49,12 +50,12 @@ def allowed_file(filename):
 
 def admin_required(f):
     @wraps(f)
-    def decorated(*args, **kwargs):
+    def decorated_function(*args, **kwargs):
         if not session.get("admin"):
             flash("Debes iniciar sesión como administrador.")
             return redirect(url_for("login_admin"))
         return f(*args, **kwargs)
-    return decorated
+    return decorated_function
 
 
 @app.route("/")
@@ -74,10 +75,10 @@ def login_admin():
 
         if usuario == ADMIN_USER and clave == ADMIN_PASS:
             session["admin"] = True
-            flash("Bienvenido al panel.")
+            flash("Bienvenido al panel de administrador.")
             return redirect(url_for("panel_admin"))
-
-        flash("Usuario o contraseña incorrectos.")
+        else:
+            flash("Usuario o contraseña incorrectos.")
 
     return render_template("login_admin.html")
 
@@ -108,7 +109,7 @@ def nuevo_producto():
         imagen = request.files.get("imagen")
 
         if not nombre or not precio:
-            flash("Nombre y precio son obligatorios.")
+            flash("El nombre y el precio son obligatorios.")
             return redirect(url_for("nuevo_producto"))
 
         try:
@@ -118,14 +119,15 @@ def nuevo_producto():
             return redirect(url_for("nuevo_producto"))
 
         nombre_imagen = None
+
         if imagen and imagen.filename:
-            if allowed_file(imagen.filename):
-                ext = secure_filename(imagen.filename).rsplit(".", 1)[1].lower()
-                nombre_imagen = f"{uuid4().hex}.{ext}"
-                imagen.save(os.path.join(UPLOAD_FOLDER, nombre_imagen))
-            else:
-                flash("Formato de imagen no permitido.")
+            if not allowed_file(imagen.filename):
+                flash("Formato de imagen no permitido. Usa PNG, JPG, JPEG o WEBP.")
                 return redirect(url_for("nuevo_producto"))
+
+            extension = secure_filename(imagen.filename).rsplit(".", 1)[1].lower()
+            nombre_imagen = f"{uuid4().hex}.{extension}"
+            imagen.save(os.path.join(UPLOAD_FOLDER, nombre_imagen))
 
         conn = get_db()
         conn.execute(
@@ -160,7 +162,7 @@ def editar_producto(id):
 
         if not nombre or not precio:
             conn.close()
-            flash("Nombre y precio son obligatorios.")
+            flash("El nombre y el precio son obligatorios.")
             return redirect(url_for("editar_producto", id=id))
 
         try:
@@ -173,14 +175,14 @@ def editar_producto(id):
         nombre_imagen = producto["imagen"]
 
         if imagen and imagen.filename:
-            if allowed_file(imagen.filename):
-                ext = secure_filename(imagen.filename).rsplit(".", 1)[1].lower()
-                nombre_imagen = f"{uuid4().hex}.{ext}"
-                imagen.save(os.path.join(UPLOAD_FOLDER, nombre_imagen))
-            else:
+            if not allowed_file(imagen.filename):
                 conn.close()
-                flash("Formato de imagen no permitido.")
+                flash("Formato de imagen no permitido. Usa PNG, JPG, JPEG o WEBP.")
                 return redirect(url_for("editar_producto", id=id))
+
+            extension = secure_filename(imagen.filename).rsplit(".", 1)[1].lower()
+            nombre_imagen = f"{uuid4().hex}.{extension}"
+            imagen.save(os.path.join(UPLOAD_FOLDER, nombre_imagen))
 
         conn.execute("""
             UPDATE productos
@@ -204,11 +206,16 @@ def eliminar_producto(id):
     producto = conn.execute("SELECT * FROM productos WHERE id = ?", (id,)).fetchone()
 
     if producto:
+        if producto["imagen"]:
+            ruta_imagen = os.path.join(UPLOAD_FOLDER, producto["imagen"])
+            if os.path.exists(ruta_imagen):
+                os.remove(ruta_imagen)
+
         conn.execute("DELETE FROM productos WHERE id = ?", (id,))
         conn.commit()
 
     conn.close()
-    flash("Producto eliminado.")
+    flash("Producto eliminado correctamente.")
     return redirect(url_for("panel_admin"))
 
 
