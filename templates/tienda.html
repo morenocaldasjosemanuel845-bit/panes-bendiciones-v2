@@ -16,6 +16,16 @@
     <main class="contenedor-tienda-publica">
         <aside class="sidebar-tienda">
             <div class="card-sidebar">
+                {% with messages = get_flashed_messages() %}
+                    {% if messages %}
+                        <div class="mensajes-tienda">
+                            {% for message in messages %}
+                                <div class="mensaje-exito">{{ message }}</div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                {% endwith %}
+
                 <form method="GET" action="{{ url_for('tienda') }}" class="form-busqueda">
                     <input
                         type="text"
@@ -34,6 +44,56 @@
                 <div class="bloque-info-tienda">
                     <h3>Acceso</h3>
                     <a href="{{ url_for('login_admin') }}" class="btn-secundario-tienda">Login administrador</a>
+                </div>
+
+                <div class="bloque-info-tienda carrito-box">
+                    <h3>
+                        Tu carrito
+                        {% if cantidad_carrito %}
+                            <span class="badge-carrito">{{ cantidad_carrito }}</span>
+                        {% endif %}
+                    </h3>
+
+                    {% if carrito_items %}
+                        <div class="lista-carrito">
+                            {% for item in carrito_items %}
+                                <div class="item-carrito">
+                                    <div class="item-carrito-info">
+                                        <strong>{{ item.nombre }}</strong>
+                                        <span>Cantidad: {{ item.cantidad }}</span>
+                                        <span>S/ {{ "%.2f"|format(item.subtotal) }}</span>
+                                    </div>
+
+                                    <form method="POST" action="{{ url_for('quitar_del_carrito', id=item.id) }}">
+                                        <button type="submit" class="btn-quitar-item">Quitar</button>
+                                    </form>
+                                </div>
+                            {% endfor %}
+                        </div>
+
+                        <p class="total-carrito">Total: S/ {{ "%.2f"|format(total_carrito) }}</p>
+
+                        <a href="{{ url_for('comprar_por_whatsapp') }}" class="btn-whatsapp">
+                            <span class="icono-wsp">💬</span>
+                            Comprar por WhatsApp
+                        </a>
+
+                        <a href="{{ url_for('contacto_por_whatsapp') }}" class="btn-contacto-whatsapp">
+                            <span class="icono-wsp">💬</span>
+                            Comunicarme contigo
+                        </a>
+
+                        <form method="POST" action="{{ url_for('vaciar_carrito') }}" class="form-vaciar-carrito">
+                            <button type="submit" class="btn-vaciar-carrito">Vaciar carrito</button>
+                        </form>
+                    {% else %}
+                        <p class="texto-carrito-vacio">Tu carrito está vacío.</p>
+
+                        <a href="{{ url_for('contacto_por_whatsapp') }}" class="btn-contacto-whatsapp">
+                            <span class="icono-wsp">💬</span>
+                            Comunicarme contigo
+                        </a>
+                    {% endif %}
                 </div>
             </div>
         </aside>
@@ -61,6 +121,14 @@
                                 {% endif %}
 
                                 <p class="precio-card-moderna">S/ {{ "%.2f"|format(producto.precio) }}</p>
+
+                                <div class="acciones-card-tienda">
+                                    <form method="POST" action="{{ url_for('agregar_al_carrito', id=producto.id) }}">
+                                        <button type="submit" class="btn-agregar-carrito">
+                                            Agregar al carrito
+                                        </button>
+                                    </form>
+                                </div>
                             </div>
                         </article>
                     {% endfor %}

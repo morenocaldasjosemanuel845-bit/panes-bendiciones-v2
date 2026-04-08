@@ -461,6 +461,181 @@ button:hover {
 }
 
 /* =========================
+   CARRITO + WHATSAPP
+========================= */
+
+.mensajes-tienda {
+    margin-bottom: 18px;
+}
+
+.badge-carrito {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 28px;
+    height: 28px;
+    padding: 0 8px;
+    margin-left: 8px;
+    border-radius: 999px;
+    background: #25d366;
+    color: white;
+    font-size: 14px;
+    font-weight: bold;
+    vertical-align: middle;
+}
+
+.carrito-box {
+    margin-top: 20px;
+    text-align: left;
+}
+
+.lista-carrito {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 14px;
+}
+
+.item-carrito {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    padding: 12px;
+    border: 1px solid #ececec;
+    border-radius: 14px;
+    background: #fafafa;
+}
+
+.item-carrito-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.item-carrito-info strong {
+    font-size: 16px;
+    color: #2d2d2d;
+}
+
+.item-carrito-info span {
+    font-size: 14px;
+    color: #666;
+}
+
+.total-carrito {
+    font-size: 22px;
+    font-weight: bold;
+    color: #1f1f1f;
+    margin: 18px 0 14px 0;
+}
+
+.texto-carrito-vacio {
+    font-size: 16px;
+    color: #666;
+    margin-top: 8px;
+}
+
+.acciones-card-tienda {
+    margin-top: 18px;
+}
+
+.acciones-card-tienda form {
+    margin: 0;
+}
+
+.btn-agregar-carrito {
+    width: 100%;
+    background: #d4a017;
+    color: white;
+    border: none;
+    border-radius: 999px;
+    padding: 14px 18px;
+    font-size: 17px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.btn-agregar-carrito:hover {
+    background: #b8860b;
+}
+
+.btn-whatsapp,
+.btn-contacto-whatsapp {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    text-decoration: none;
+    border-radius: 999px;
+    padding: 14px 18px;
+    font-size: 16px;
+    font-weight: bold;
+    margin-bottom: 12px;
+    transition: 0.3s;
+}
+
+.btn-whatsapp {
+    background: #25d366;
+    color: white;
+}
+
+.btn-whatsapp:hover {
+    background: #1ebe5a;
+}
+
+.btn-contacto-whatsapp {
+    background: #128c7e;
+    color: white;
+}
+
+.btn-contacto-whatsapp:hover {
+    background: #0f7469;
+}
+
+.icono-wsp {
+    font-size: 18px;
+    line-height: 1;
+}
+
+.btn-quitar-item {
+    background: #c0392b;
+    color: white;
+    border: none;
+    border-radius: 999px;
+    padding: 10px 14px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.btn-quitar-item:hover {
+    background: #922b21;
+}
+
+.form-vaciar-carrito {
+    margin-top: 8px;
+}
+
+.btn-vaciar-carrito {
+    width: 100%;
+    background: #6c757d;
+    color: white;
+    border: none;
+    border-radius: 999px;
+    padding: 13px 18px;
+    font-size: 15px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.btn-vaciar-carrito:hover {
+    background: #565e64;
+}
+
+/* =========================
    RESPONSIVE
 ========================= */
 @media (max-width: 992px) {
@@ -511,5 +686,14 @@ button:hover {
 
     .imagen-card-moderna {
         height: 230px;
+    }
+
+    .item-carrito {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .btn-quitar-item {
+        width: 100%;
     }
 }

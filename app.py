@@ -1,6 +1,7 @@
 import os
 import sqlite3
 from functools import wraps
+from urllib.parse import quote
 from uuid import uuid4
 
 from flask import Flask, render_template, request, redirect, url_for, flash, session
@@ -11,6 +12,11 @@ app.secret_key = os.environ.get("SECRET_KEY", "cambia-esto-en-produccion")
 
 ADMIN_USER = os.environ.get("ADMIN_USER", "admin")
 ADMIN_PASS = os.environ.get("ADMIN_PASS", "123456")
+
+# Tu número en formato WhatsApp internacional para Perú
+# 940849095 -> 51940849095
+WHATSAPP_NUMBER = os.environ.get("WHATSAPP_NUMBER", "51940849095")
+STORE_NAME = os.environ.get("STORE_NAME", "Panes Artesanales Las 3 Bendiciones")
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, "tienda.db")
@@ -58,6 +64,70 @@ def admin_required(f):
     return decorated_function
 
 
+def obtener_carrito():
+    return session.get("carrito", {})
+
+
+def guardar_carrito(carrito):
+    session["carrito"] = carrito
+    session.modified = True
+
+
+def obtener_datos_carrito():
+    carrito = obtener_carrito()
+
+    if not carrito:
+        return [], 0.0, 0
+
+    ids = []
+    for producto_id in carrito.keys():
+        try:
+            ids.append(int(producto_id))
+        except ValueError:
+            continue
+
+    if not ids:
+        return [], 0.0, 0
+
+    conn = get_db()
+    placeholders = ",".join(["?"] * len(ids))
+    productos = conn.execute(
+        f"SELECT * FROM productos WHERE id IN ({placeholders})",
+        ids
+    ).fetchall()
+    conn.close()
+
+    mapa_productos = {str(p["id"]): p for p in productos}
+
+    items = []
+    total = 0.0
+    cantidad_total = 0
+
+    for producto_id, cantidad in carrito.items():
+        producto = mapa_productos.get(str(producto_id))
+        if not producto:
+            continue
+
+        cantidad = int(cantidad)
+        precio = float(producto["precio"])
+        subtotal = precio * cantidad
+
+        items.append({
+            "id": producto["id"],
+            "nombre": producto["nombre"],
+            "precio": precio,
+            "cantidad": cantidad,
+            "subtotal": subtotal,
+            "imagen": producto["imagen"],
+        })
+
+        total += subtotal
+        cantidad_total += cantidad
+
+    items.sort(key=lambda x: x["id"], reverse=True)
+    return items, total, cantidad_total
+
+
 @app.route("/")
 @app.route("/tienda")
 def tienda():
@@ -77,7 +147,104 @@ def tienda():
         productos = conn.execute("SELECT * FROM productos ORDER BY id DESC").fetchall()
 
     conn.close()
-    return render_template("tienda.html", productos=productos, busqueda=busqueda)
+
+    carrito_items, total_carrito, cantidad_carrito = obtener_datos_carrito()
+
+    return render_template(
+        "tienda.html",
+        productos=productos,
+        busqueda=busqueda,
+        carrito_items=carrito_items,
+        total_carrito=total_carrito,
+        cantidad_carrito=cantidad_carrito
+    )
+
+
+@app.route("/carrito/agregar/<int:id>", methods=["POST"])
+def agregar_al_carrito(id):
+    conn = get_db()
+    producto = conn.execute("SELECT * FROM productos WHERE id = ?", (id,)).fetchone()
+    conn.close()
+
+    if not producto:
+        flash("Producto no encontrado.")
+        return redirect(url_for("tienda"))
+
+    carrito = obtener_carrito()
+    clave = str(id)
+    carrito[clave] = int(carrito.get(clave, 0)) + 1
+    guardar_carrito(carrito)
+
+    flash(f"{producto['nombre']} fue agregado al carrito.")
+    return redirect(request.referrer or url_for("tienda"))
+
+
+@app.route("/carrito/quitar/<int:id>", methods=["POST"])
+def quitar_del_carrito(id):
+    carrito = obtener_carrito()
+    clave = str(id)
+
+    if clave in carrito:
+        cantidad_actual = int(carrito[clave])
+
+        if cantidad_actual > 1:
+            carrito[clave] = cantidad_actual - 1
+        else:
+            carrito.pop(clave)
+
+        guardar_carrito(carrito)
+        flash("Producto actualizado en el carrito.")
+
+    return redirect(request.referrer or url_for("tienda"))
+
+
+@app.route("/carrito/vaciar", methods=["POST"])
+def vaciar_carrito():
+    session["carrito"] = {}
+    session.modified = True
+    flash("El carrito fue vaciado.")
+    return redirect(request.referrer or url_for("tienda"))
+
+
+@app.route("/whatsapp/comprar")
+def comprar_por_whatsapp():
+    carrito_items, total_carrito, cantidad_carrito = obtener_datos_carrito()
+
+    if not carrito_items:
+        flash("Tu carrito está vacío.")
+        return redirect(url_for("tienda"))
+
+    lineas = [
+        f"Hola, quiero comprar en {STORE_NAME}:",
+        ""
+    ]
+
+    for item in carrito_items:
+        lineas.append(
+            f"- {item['nombre']} x{item['cantidad']} = S/ {item['subtotal']:.2f}"
+        )
+
+    lineas.extend([
+        "",
+        f"Total de productos: {cantidad_carrito}",
+        f"Total a pagar: S/ {total_carrito:.2f}",
+        "",
+        "Quedo atento(a) para confirmar el pedido y el método de pago."
+    ])
+
+    mensaje = "\n".join(lineas)
+    url = f"https://wa.me/{WHATSAPP_NUMBER}?text={quote(mensaje)}"
+    return redirect(url)
+
+
+@app.route("/whatsapp/contacto")
+def contacto_por_whatsapp():
+    mensaje = (
+        f"Hola, te comunicaste con la tienda {STORE_NAME}. "
+        f"Quisiera más información sobre los productos."
+    )
+    url = f"https://wa.me/{WHATSAPP_NUMBER}?text={quote(mensaje)}"
+    return redirect(url)
 
 
 @app.route("/admin/login", methods=["GET", "POST"])
