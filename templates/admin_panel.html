@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Panel administrador</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<div class="contenedor">
+    <h1>Panel del dueño</h1>
+
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        {% for message in messages %}
+          <p>{{ message }}</p>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <div class="acciones-superiores">
+        <a href="{{ url_for('nuevo_producto') }}">Agregar producto</a>
+        <a href="{{ url_for('tienda') }}">Ver tienda</a>
+
+        <form method="POST" action="{{ url_for('logout_admin') }}" style="display:inline;">
+            <button type="submit">Cerrar sesión</button>
+        </form>
+    </div>
+
+    <div class="productos">
+        {% for producto in productos %}
+        <div class="producto">
+            {% if producto.imagen %}
+                <img src="{{ url_for('static', filename='uploads/' + producto.imagen) }}" alt="{{ producto.nombre }}">
+            {% endif %}
+            <h2>{{ producto.nombre }}</h2>
+            <p>{{ producto.descripcion }}</p>
+            <p>S/ {{ "%.2f"|format(producto.precio) }}</p>
+
+            <a href="{{ url_for('editar_producto', id=producto.id) }}">Editar</a>
+
+            <form method="POST" action="{{ url_for('eliminar_producto', id=producto.id) }}">
+                <button type="submit">Eliminar</button>
+            </form>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+</body>
+</html>

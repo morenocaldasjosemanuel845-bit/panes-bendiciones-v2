@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>{% if producto %}Editar{% else %}Nuevo{% endif %} producto</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<div class="contenedor">
+    <h1>{% if producto %}Editar{% else %}Nuevo{% endif %} producto</h1>
+
+    <form method="POST" enctype="multipart/form-data" class="form-admin">
+        <input type="text" name="nombre" placeholder="Nombre"
+               value="{{ producto.nombre if producto else '' }}" required>
+
+        <textarea name="descripcion" placeholder="Descripción" rows="5">{{ producto.descripcion if producto else '' }}</textarea>
+
+        <input type="number" step="0.01" name="precio" placeholder="Precio"
+               value="{{ producto.precio if producto else '' }}" required>
+
+        <input type="file" name="imagen" accept="image/*">
+
+        <button type="submit">Guardar</button>
+    </form>
+
+    <p><a href="{{ url_for('panel_admin') }}">Volver al panel</a></p>
+</div>
+</body>
+</html>
