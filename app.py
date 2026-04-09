@@ -1,10 +1,21 @@
 import os
+import shutil
 import sqlite3
 from functools import wraps
 from urllib.parse import quote
 from uuid import uuid4
 
-from flask import Flask, render_template, request, redirect, url_for, flash, session
+from flask import (
+    Flask,
+    render_template,
+    request,
+    redirect,
+    url_for,
+    flash,
+    session,
+    send_from_directory,
+    abort,
+)
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
@@ -13,23 +24,39 @@ app.secret_key = os.environ.get("SECRET_KEY", "cambia-esto-en-produccion")
 ADMIN_USER = os.environ.get("ADMIN_USER", "admin")
 ADMIN_PASS = os.environ.get("ADMIN_PASS", "123456")
 
-# Tu número en formato WhatsApp internacional para Perú
-# 940849095 -> 51940849095
 WHATSAPP_NUMBER = os.environ.get("WHATSAPP_NUMBER", "51940849095")
 STORE_NAME = os.environ.get("STORE_NAME", "Panes Artesanales Las 3 Bendiciones")
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_PATH = os.path.join(BASE_DIR, "tienda.db")
-UPLOAD_FOLDER = os.path.join(BASE_DIR, "static", "uploads")
+LEGACY_DB_PATH = os.path.join(BASE_DIR, "tienda.db")
+LEGACY_UPLOAD_FOLDER = os.path.join(BASE_DIR, "static", "uploads")
+
+DEFAULT_DATA_DIR = "/var/data" if os.path.isdir("/var/data") else os.path.join(BASE_DIR, "data")
+DATA_DIR = os.environ.get("DATA_DIR", DEFAULT_DATA_DIR)
+
+DB_PATH = os.path.join(DATA_DIR, "tienda.db")
+UPLOAD_FOLDER = os.path.join(DATA_DIR, "uploads")
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "webp"}
 
+os.makedirs(DATA_DIR, exist_ok=True)
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+os.makedirs(LEGACY_UPLOAD_FOLDER, exist_ok=True)
+
+# Migra la base de datos antigua si aún existe y la nueva no
+if not os.path.exists(DB_PATH) and os.path.exists(LEGACY_DB_PATH):
+    shutil.copy2(LEGACY_DB_PATH, DB_PATH)
 
 
 def get_db():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA foreign_keys = ON")
     return conn
+
+
+def column_exists(conn, table_name, column_name):
+    rows = conn.execute(f"PRAGMA table_info({table_name})").fetchall()
+    return any(row["name"] == column_name for row in rows)
 
 
 def crear_tablas():
@@ -45,6 +72,49 @@ def crear_tablas():
             imagen TEXT
         )
     """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS product_images (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            producto_id INTEGER NOT NULL,
+            filename TEXT NOT NULL,
+            posicion INTEGER NOT NULL DEFAULT 0,
+            FOREIGN KEY (producto_id) REFERENCES productos(id) ON DELETE CASCADE
+        )
+    """)
+
+    conn.commit()
+    conn.close()
+
+
+def migrar_imagenes_antiguas():
+    conn = get_db()
+
+    if column_exists(conn, "productos", "imagen"):
+        productos = conn.execute("""
+            SELECT id, imagen
+            FROM productos
+            WHERE imagen IS NOT NULL AND TRIM(imagen) <> ''
+        """).fetchall()
+
+        for producto in productos:
+            existe = conn.execute("""
+                SELECT 1
+                FROM product_images
+                WHERE producto_id = ? AND filename = ?
+            """, (producto["id"], producto["imagen"])).fetchone()
+
+            if not existe:
+                siguiente = conn.execute("""
+                    SELECT COALESCE(MAX(posicion), -1) + 1 AS siguiente
+                    FROM product_images
+                    WHERE producto_id = ?
+                """, (producto["id"],)).fetchone()["siguiente"]
+
+                conn.execute("""
+                    INSERT INTO product_images (producto_id, filename, posicion)
+                    VALUES (?, ?, ?)
+                """, (producto["id"], producto["imagen"], siguiente))
 
     conn.commit()
     conn.close()
@@ -62,6 +132,101 @@ def admin_required(f):
             return redirect(url_for("login_admin"))
         return f(*args, **kwargs)
     return decorated_function
+
+
+def eliminar_archivo_imagen(filename):
+    for carpeta in [UPLOAD_FOLDER, LEGACY_UPLOAD_FOLDER]:
+        ruta = os.path.join(carpeta, filename)
+        if os.path.exists(ruta):
+            os.remove(ruta)
+
+
+def obtener_mapa_imagenes(conn, producto_ids):
+    if not producto_ids:
+        return {}
+
+    placeholders = ",".join(["?"] * len(producto_ids))
+    rows = conn.execute(
+        f"""
+        SELECT id, producto_id, filename, posicion
+        FROM product_images
+        WHERE producto_id IN ({placeholders})
+        ORDER BY producto_id ASC, posicion ASC, id ASC
+        """,
+        producto_ids
+    ).fetchall()
+
+    mapa = {}
+    for row in rows:
+        mapa.setdefault(row["producto_id"], []).append({
+            "id": row["id"],
+            "producto_id": row["producto_id"],
+            "filename": row["filename"],
+            "posicion": row["posicion"],
+        })
+
+    return mapa
+
+
+def enriquecer_productos(productos):
+    conn = get_db()
+    ids = [p["id"] for p in productos]
+    mapa_imagenes = obtener_mapa_imagenes(conn, ids)
+    conn.close()
+
+    enriquecidos = []
+    for p in productos:
+        imagenes = mapa_imagenes.get(p["id"], [])
+        imagen_principal = imagenes[0]["filename"] if imagenes else (p["imagen"] if "imagen" in p.keys() else None)
+
+        enriquecidos.append({
+            "id": p["id"],
+            "nombre": p["nombre"],
+            "descripcion": p["descripcion"],
+            "precio": p["precio"],
+            "imagenes": imagenes,
+            "imagen_principal": imagen_principal,
+            "cantidad_imagenes": len(imagenes),
+        })
+
+    return enriquecidos
+
+
+def guardar_nuevas_imagenes(conn, producto_id, archivos):
+    if not archivos:
+        return
+
+    siguiente = conn.execute("""
+        SELECT COALESCE(MAX(posicion), -1) + 1 AS siguiente
+        FROM product_images
+        WHERE producto_id = ?
+    """, (producto_id,)).fetchone()["siguiente"]
+
+    for i, imagen in enumerate(archivos):
+        extension = secure_filename(imagen.filename).rsplit(".", 1)[1].lower()
+        nombre_imagen = f"{uuid4().hex}.{extension}"
+        imagen.save(os.path.join(UPLOAD_FOLDER, nombre_imagen))
+
+        conn.execute("""
+            INSERT INTO product_images (producto_id, filename, posicion)
+            VALUES (?, ?, ?)
+        """, (producto_id, nombre_imagen, siguiente + i))
+
+
+def reordenar_imagenes(conn, producto_id):
+    imagenes = conn.execute("""
+        SELECT id
+        FROM product_images
+        WHERE producto_id = ?
+        ORDER BY posicion ASC, id ASC
+    """, (producto_id,)).fetchall()
+
+    for nuevo_indice, imagen in enumerate(imagenes):
+        conn.execute("""
+            UPDATE product_images
+            SET posicion = ?
+            WHERE id = ?
+        """, (nuevo_indice, imagen["id"]))
 
 
 def obtener_carrito():
@@ -95,6 +260,8 @@ def obtener_datos_carrito():
         f"SELECT * FROM productos WHERE id IN ({placeholders})",
         ids
     ).fetchall()
+
+    mapa_imagenes = obtener_mapa_imagenes(conn, ids)
     conn.close()
 
     mapa_productos = {str(p["id"]): p for p in productos}
@@ -111,6 +278,8 @@ def obtener_datos_carrito():
         cantidad = int(cantidad)
         precio = float(producto["precio"])
         subtotal = precio * cantidad
+        imagenes = mapa_imagenes.get(producto["id"], [])
+        imagen_principal = imagenes[0]["filename"] if imagenes else (producto["imagen"] if "imagen" in producto.keys() else None)
 
         items.append({
             "id": producto["id"],
@@ -118,7 +287,7 @@ def obtener_datos_carrito():
             "precio": precio,
             "cantidad": cantidad,
             "subtotal": subtotal,
-            "imagen": producto["imagen"],
+            "imagen_principal": imagen_principal,
         })
 
         total += subtotal
@@ -126,6 +295,19 @@ def obtener_datos_carrito():
 
     items.sort(key=lambda x: x["id"], reverse=True)
     return items, total, cantidad_total
+
+
+@app.route("/uploads/<path:filename>")
+def uploaded_file(filename):
+    ruta_nueva = os.path.join(UPLOAD_FOLDER, filename)
+    if os.path.exists(ruta_nueva):
+        return send_from_directory(UPLOAD_FOLDER, filename)
+
+    ruta_antigua = os.path.join(LEGACY_UPLOAD_FOLDER, filename)
+    if os.path.exists(ruta_antigua):
+        return send_from_directory(LEGACY_UPLOAD_FOLDER, filename)
+
+    abort(404)
 
 
 @app.route("/")
@@ -148,6 +330,7 @@ def tienda():
 
     conn.close()
 
+    productos = enriquecer_productos(productos)
     carrito_items, total_carrito, cantidad_carrito = obtener_datos_carrito()
 
     return render_template(
@@ -220,9 +403,7 @@ def comprar_por_whatsapp():
     ]
 
     for item in carrito_items:
-        lineas.append(
-            f"- {item['nombre']} x{item['cantidad']} = S/ {item['subtotal']:.2f}"
-        )
+        lineas.append(f"- {item['nombre']} x{item['cantidad']} = S/ {item['subtotal']:.2f}")
 
     lineas.extend([
         "",
@@ -276,6 +457,8 @@ def panel_admin():
     conn = get_db()
     productos = conn.execute("SELECT * FROM productos ORDER BY id DESC").fetchall()
     conn.close()
+
+    productos = enriquecer_productos(productos)
     return render_template("admin_panel.html", productos=productos)
 
 
@@ -286,7 +469,7 @@ def nuevo_producto():
         nombre = request.form.get("nombre", "").strip()
         descripcion = request.form.get("descripcion", "").strip()
         precio = request.form.get("precio", "").strip()
-        imagen = request.files.get("imagen")
+        imagenes = [img for img in request.files.getlist("imagenes") if img and img.filename]
 
         if not nombre or not precio:
             flash("El nombre y el precio son obligatorios.")
@@ -298,22 +481,30 @@ def nuevo_producto():
             flash("El precio debe ser un número válido.")
             return redirect(url_for("nuevo_producto"))
 
-        nombre_imagen = None
+        if len(imagenes) < 1:
+            flash("Debes subir al menos 1 imagen del producto.")
+            return redirect(url_for("nuevo_producto"))
 
-        if imagen and imagen.filename:
+        if len(imagenes) > 5:
+            flash("Solo puedes subir un máximo de 5 imágenes por producto.")
+            return redirect(url_for("nuevo_producto"))
+
+        for imagen in imagenes:
             if not allowed_file(imagen.filename):
                 flash("Formato de imagen no permitido. Usa PNG, JPG, JPEG o WEBP.")
                 return redirect(url_for("nuevo_producto"))
 
-            extension = secure_filename(imagen.filename).rsplit(".", 1)[1].lower()
-            nombre_imagen = f"{uuid4().hex}.{extension}"
-            imagen.save(os.path.join(UPLOAD_FOLDER, nombre_imagen))
-
         conn = get_db()
-        conn.execute(
+        cur = conn.cursor()
+
+        cur.execute(
             "INSERT INTO productos (nombre, descripcion, precio, imagen) VALUES (?, ?, ?, ?)",
-            (nombre, descripcion, precio, nombre_imagen)
+            (nombre, descripcion, precio, None)
         )
+        producto_id = cur.lastrowid
+
+        guardar_nuevas_imagenes(conn, producto_id, imagenes)
+
         conn.commit()
         conn.close()
 
@@ -334,11 +525,19 @@ def editar_producto(id):
         flash("Producto no encontrado.")
         return redirect(url_for("panel_admin"))
 
+    imagenes_actuales = conn.execute("""
+        SELECT id, producto_id, filename, posicion
+        FROM product_images
+        WHERE producto_id = ?
+        ORDER BY posicion ASC, id ASC
+    """, (id,)).fetchall()
+
     if request.method == "POST":
         nombre = request.form.get("nombre", "").strip()
         descripcion = request.form.get("descripcion", "").strip()
         precio = request.form.get("precio", "").strip()
-        imagen = request.files.get("imagen")
+        nuevas_imagenes = [img for img in request.files.getlist("imagenes") if img and img.filename]
+        ids_eliminar = set(request.form.getlist("imagenes_eliminar"))
 
         if not nombre or not precio:
             conn.close()
@@ -352,23 +551,39 @@ def editar_producto(id):
             flash("El precio debe ser un número válido.")
             return redirect(url_for("editar_producto", id=id))
 
-        nombre_imagen = producto["imagen"]
-
-        if imagen and imagen.filename:
+        for imagen in nuevas_imagenes:
             if not allowed_file(imagen.filename):
                 conn.close()
                 flash("Formato de imagen no permitido. Usa PNG, JPG, JPEG o WEBP.")
                 return redirect(url_for("editar_producto", id=id))
 
-            extension = secure_filename(imagen.filename).rsplit(".", 1)[1].lower()
-            nombre_imagen = f"{uuid4().hex}.{extension}"
-            imagen.save(os.path.join(UPLOAD_FOLDER, nombre_imagen))
+        imagenes_a_eliminar = [img for img in imagenes_actuales if str(img["id"]) in ids_eliminar]
+
+        total_final = (len(imagenes_actuales) - len(imagenes_a_eliminar)) + len(nuevas_imagenes)
+
+        if total_final < 1:
+            conn.close()
+            flash("Cada producto debe tener al menos 1 imagen.")
+            return redirect(url_for("editar_producto", id=id))
+
+        if total_final > 5:
+            conn.close()
+            flash("Solo puedes tener un máximo de 5 imágenes por producto.")
+            return redirect(url_for("editar_producto", id=id))
 
         conn.execute("""
             UPDATE productos
-            SET nombre = ?, descripcion = ?, precio = ?, imagen = ?
+            SET nombre = ?, descripcion = ?, precio = ?
             WHERE id = ?
-        """, (nombre, descripcion, precio, nombre_imagen, id))
+        """, (nombre, descripcion, precio, id))
+
+        for img in imagenes_a_eliminar:
+            conn.execute("DELETE FROM product_images WHERE id = ? AND producto_id = ?", (img["id"], id))
+            eliminar_archivo_imagen(img["filename"])
+
+        guardar_nuevas_imagenes(conn, id, nuevas_imagenes)
+        reordenar_imagenes(conn, id)
+
         conn.commit()
         conn.close()
 
@@ -376,6 +591,22 @@ def editar_producto(id):
         return redirect(url_for("panel_admin"))
 
     conn.close()
+
+    producto = {
+        "id": producto["id"],
+        "nombre": producto["nombre"],
+        "descripcion": producto["descripcion"],
+        "precio": producto["precio"],
+        "imagenes": [
+            {
+                "id": img["id"],
+                "filename": img["filename"],
+                "posicion": img["posicion"],
+            }
+            for img in imagenes_actuales
+        ]
+    }
+
     return render_template("producto_form.html", producto=producto)
 
 
@@ -386,10 +617,17 @@ def eliminar_producto(id):
     producto = conn.execute("SELECT * FROM productos WHERE id = ?", (id,)).fetchone()
 
     if producto:
+        imagenes = conn.execute("""
+            SELECT filename
+            FROM product_images
+            WHERE producto_id = ?
+        """, (id,)).fetchall()
+
+        for imagen in imagenes:
+            eliminar_archivo_imagen(imagen["filename"])
+
         if producto["imagen"]:
-            ruta_imagen = os.path.join(UPLOAD_FOLDER, producto["imagen"])
-            if os.path.exists(ruta_imagen):
-                os.remove(ruta_imagen)
+            eliminar_archivo_imagen(producto["imagen"])
 
         conn.execute("DELETE FROM productos WHERE id = ?", (id,))
         conn.commit()
@@ -401,5 +639,6 @@ def eliminar_producto(id):
 
 if __name__ == "__main__":
     crear_tablas()
+    migrar_imagenes_antiguas()
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True)

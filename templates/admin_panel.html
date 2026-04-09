@@ -34,11 +34,21 @@
             {% if productos %}
                 {% for producto in productos %}
                     <div class="producto">
-                        {% if producto.imagen %}
-                            <img src="{{ url_for('static', filename='uploads/' + producto.imagen) }}" alt="{{ producto.nombre }}">
+                        {% if producto.imagen_principal %}
+                            <img src="{{ url_for('uploaded_file', filename=producto.imagen_principal) }}" alt="{{ producto.nombre }}">
                         {% else %}
                             <div class="sin-imagen">Sin imagen</div>
                         {% endif %}
+
+                        {% if producto.imagenes and producto.cantidad_imagenes > 1 %}
+                            <div class="mini-galeria-admin">
+                                {% for imagen in producto.imagenes[:5] %}
+                                    <img src="{{ url_for('uploaded_file', filename=imagen.filename) }}" alt="{{ producto.nombre }} {{ loop.index }}">
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+
+                        <p class="contador-fotos">{{ producto.cantidad_imagenes }} foto(s)</p>
 
                         <h3>{{ producto.nombre }}</h3>
                         <p>{{ producto.descripcion }}</p>

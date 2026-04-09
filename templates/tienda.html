@@ -104,12 +104,20 @@
                     {% for producto in productos %}
                         <article class="card-producto-moderno">
                             <div class="imagen-card-moderna">
-                                {% if producto.imagen %}
-                                    <img src="{{ url_for('static', filename='uploads/' + producto.imagen) }}" alt="{{ producto.nombre }}">
+                                {% if producto.imagen_principal %}
+                                    <img src="{{ url_for('uploaded_file', filename=producto.imagen_principal) }}" alt="{{ producto.nombre }}">
                                 {% else %}
                                     <div class="sin-imagen-moderna">Sin imagen</div>
                                 {% endif %}
                             </div>
+
+                            {% if producto.imagenes and producto.cantidad_imagenes > 1 %}
+                                <div class="mini-galeria-tienda">
+                                    {% for imagen in producto.imagenes[:5] %}
+                                        <img src="{{ url_for('uploaded_file', filename=imagen.filename) }}" alt="{{ producto.nombre }} {{ loop.index }}">
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
 
                             <div class="contenido-card-moderna">
                                 <h2>{{ producto.nombre }}</h2>

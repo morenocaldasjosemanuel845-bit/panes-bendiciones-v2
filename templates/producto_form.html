@@ -44,7 +44,31 @@
                 required
             >
 
-            <input type="file" name="imagen" accept=".png,.jpg,.jpeg,.webp,image/*">
+            <div class="bloque-subida-imagenes">
+                <label class="label-form">Sube entre 1 y 5 imágenes</label>
+                <input type="file" name="imagenes" accept=".png,.jpg,.jpeg,.webp,image/*" multiple>
+                <p class="ayuda-formulario">Puedes subir 1, 2, 3, 4 o hasta 5 fotos del producto.</p>
+            </div>
+
+            {% if producto and producto.imagenes %}
+                <div class="bloque-imagenes-existentes">
+                    <h3>Imágenes actuales</h3>
+                    <div class="grid-imagenes-form">
+                        {% for imagen in producto.imagenes %}
+                            <label class="card-imagen-form">
+                                <img src="{{ url_for('uploaded_file', filename=imagen.filename) }}" alt="Imagen {{ loop.index }}">
+                                <span class="texto-check">
+                                    <input type="checkbox" name="imagenes_eliminar" value="{{ imagen.id }}">
+                                    Eliminar esta imagen
+                                </span>
+                            </label>
+                        {% endfor %}
+                    </div>
+                    <p class="ayuda-formulario">
+                        Debe quedar al menos 1 imagen y como máximo 5 por producto.
+                    </p>
+                </div>
+            {% endif %}
 
             <button type="submit">Guardar producto</button>
         </form>
