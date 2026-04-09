@@ -637,8 +637,9 @@ def eliminar_producto(id):
     return redirect(url_for("panel_admin"))
 
 
+crear_tablas()
+migrar_imagenes_antiguas()
+
 if __name__ == "__main__":
-    crear_tablas()
-    migrar_imagenes_antiguas()
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True)
